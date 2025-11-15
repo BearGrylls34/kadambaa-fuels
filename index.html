@@ -218,7 +218,7 @@
     <div class="spacer"></div>
 
     <div class="rate-inputs">
-      <button class="btn-inline" id="changeRatesBtn" onclick="toggleRateEdit()" style="display:none">Change</button>
+      <button class="btn-inline" id="changeRatesBtn" onclick="toggleRateEdit()" title="Click to edit prices">✏️ Edit Prices</button>
       <label>Diesel:</label>
       <input type="number" id="rateDiesel" value="92.76" step="0.01" onchange="updateRates()" placeholder="92.76" disabled>
       <label>Petrol:</label>
@@ -338,26 +338,36 @@ function closeForgot(){
   el('forgotModal').style.display = 'none';
 }
 
-/* ---------- Toggle rate editing (kept but hidden by default) ---------- */
+/* ---------- Toggle rate editing ---------- */
 function toggleRateEdit(){
   const dieselInput = el("rateDiesel");
   const petrolInput = el("ratePetrol");
   const oilInput = el("rateOil");
   const btn = el("changeRatesBtn");
   
+  if(!dieselInput || !petrolInput || !oilInput || !btn) return;
+  
   if(dieselInput.disabled){
+    // Enable editing
     dieselInput.disabled = false;
     petrolInput.disabled = false;
     oilInput.disabled = false;
-    btn.innerText = "Save";
-    btn.style.background = "#22a06b";
+    btn.innerText = "💾 Save Prices";
+    btn.title = "Click to save prices";
+    btn.style.background = "linear-gradient(135deg, var(--success), #059669)";
+    // Focus on first input
+    dieselInput.focus();
   } else {
+    // Disable editing and save
     dieselInput.disabled = true;
     petrolInput.disabled = true;
     oilInput.disabled = true;
-    btn.innerText = "Change";
+    btn.innerText = "✏️ Edit Prices";
+    btn.title = "Click to edit prices";
     btn.style.background = "";
     updateRates();
+    // Save to localStorage
+    localStorage.setItem("kadaamba_rates", JSON.stringify(RATES));
   }
 }
 
@@ -367,6 +377,8 @@ function updateRates(){
   RATES.petrol = Number(el("ratePetrol").value) || RATES.petrol;
   RATES.oil = Number(el("rateOil").value) || RATES.oil;
   el("ratesDisplay").innerText = `Rates — Diesel ₹${RATES.diesel.toFixed(2)} · Petrol ₹${RATES.petrol.toFixed(2)} · Oil ₹${RATES.oil.toFixed(2)}`;
+  // Save to localStorage
+  localStorage.setItem("kadaamba_rates", JSON.stringify(RATES));
 }
 
 /* ---------- login (DEALER only by request) ---------- */
@@ -381,6 +393,21 @@ function doLogin(){
     document.getElementById("app").style.display = "block";
     el("topDateTime").innerText = nowDateTime();
     setInterval(()=> el("topDateTime").innerText = nowDateTime(), 1000);
+    
+    // Load saved rates from localStorage
+    const savedRates = localStorage.getItem("kadaamba_rates");
+    if(savedRates){
+      try{
+        const rates = JSON.parse(savedRates);
+        RATES.diesel = rates.diesel || RATES.diesel;
+        RATES.petrol = rates.petrol || RATES.petrol;
+        RATES.oil = rates.oil || RATES.oil;
+        el("rateDiesel").value = RATES.diesel;
+        el("ratePetrol").value = RATES.petrol;
+        el("rateOil").value = RATES.oil;
+      }catch(e){}
+    }
+    
     updateRates(); // Initialize rates display
     setupUserAccess(); // Setup access based on user type
     renderMachines();
@@ -406,8 +433,8 @@ function setupUserAccess(){
     el("ratePetrol").disabled = true;
     el("rateOil").disabled = true;
   } else {
-    // Dealers cannot change rates by default
-    if(changeBtn) changeBtn.style.display = "none";
+    // Dealers can change rates
+    if(changeBtn) changeBtn.style.display = "block";
     el("rateDiesel").disabled = true;
     el("ratePetrol").disabled = true;
     el("rateOil").disabled = true;
