@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>KADAMBAA FULES - Dashboard</title>
+
+<!-- html2pdf CDN for PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+  :root{
+    --blue-1:#0071ce;
+    --blue-2:#004aad;
+    --accent:#00b4d8;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --success:#10b981;
+    --danger:#ef4444;
+    --warning:#f59e0b;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: "Segoe UI", "Inter", Roboto, Arial, sans-serif;
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+    min-height:100vh;
+    color:#111;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:12px;
+    position:relative;
+  }
+  body::before{
+    content:''; position:fixed; top:0;left:0;right:0;bottom:0;
+    background:radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.1) 0%, transparent 50%);
+    pointer-events:none;
+  }
+
+  /* login box */
+  .login-card{
+    width:420px; max-width:92vw; background:#fff; padding:32px;
+    border-radius:20px; box-shadow:0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1);
+    text-align:center; animation:pop .6s ease; position:relative; z-index:1; backdrop-filter:blur(10px);
+  }
+  @keyframes pop{from{transform:translateY(18px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+  .login-card img{height:72px; margin-bottom:12px; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.1))}
+  .login-card h2{color:var(--blue-2); margin:8px 0 20px; font-size:24px; font-weight:800}
+  .field{margin:14px 0; text-align:left}
+  .field label{display:block;font-weight:600;color:var(--muted); margin-bottom:8px; font-size:14px}
+  .field input{width:100%;padding:12px 16px;border-radius:10px;border:2px solid #e5e7eb;font-size:15px;transition:all 0.3s ease;background:#fafafa;}
+  .field input:focus{outline:none;border-color:var(--blue-2);background:#fff;box-shadow:0 0 0 3px rgba(0,74,173,0.1);}
+  .btn{background:linear-gradient(135deg, var(--blue-2), var(--blue-1));color:#fff;border:none;padding:14px 20px;border-radius:10px;font-weight:700;cursor:pointer;width:100%;margin-top:18px;font-size:16px;transition:all 0.3s ease;box-shadow:0 4px 12px rgba(0,74,173,0.3);}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,74,173,0.4);}
+  .small-muted{font-size:13px;color:var(--muted)}
+
+  /* forgot password link + modal */
+  .forgot-btn {
+    margin-top: 10px;
+    background: transparent;
+    border: none;
+    color: var(--blue-2);
+    text-decoration: underline;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .forgot-modal {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%,-50%);
+    background: #fff;
+    border-radius: 12px;
+    padding: 18px;
+    width: 320px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    z-index: 9999;
+    display: none;
+  }
+  .forgot-modal h4 { margin:0 0 8px; color:var(--blue-2) }
+  .forgot-modal p { margin:6px 0; color:#333; font-size:14px }
+  .forgot-modal .close { margin-top:12px; display:flex; justify-content:flex-end }
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); display:none; z-index:9998; }
+
+  /* main dashboard */
+  .app { width:95vw; max-width:1600px; min-width:1200px; background:#fff; border-radius:20px; box-shadow:0 25px 70px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1); overflow:auto; max-height:96vh; position:relative; z-index:1; }
+  .topbar{display:flex;align-items:center;gap:18px;padding:20px 28px;border-bottom:3px solid var(--blue-2);background:linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);box-shadow:0 2px 10px rgba(0,0,0,0.05);position:sticky;top:0;z-index:10;}
+  .top-left{display:flex;align-items:center;gap:14px}
+  .hp-logo{height:56px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.1))}
+  .title{font-size:22px;color:var(--blue-2);font-weight:800}
+  .spacer{flex:1}
+  .datetime{font-weight:700;color:var(--muted); font-size:14px; padding:6px 12px; background:#f1f5f9; border-radius:8px}
+  .controls{display:flex;gap:8px}
+  .rate-inputs{display:flex;gap:10px;align-items:center;margin-right:12px; padding:8px 12px; background:#f8fafc; border-radius:10px}
+  .rate-inputs label{font-size:12px;font-weight:600;color:var(--muted);margin-right:4px}
+  .rate-inputs input{width:75px;padding:8px 10px;border-radius:8px;border:2px solid #e2e8f0;font-size:13px;transition:all 0.3s ease;background:#fff}
+  .rate-inputs input:focus{outline:none; border-color:var(--blue-2); box-shadow:0 0 0 3px rgba(0,74,173,0.1);}
+
+  .content{padding:20px;display:grid;grid-template-columns:1fr;gap:16px}
+  .machines{display:grid;grid-template-columns:repeat(1,1fr);gap:16px}
+  @media(min-width:980px){ .machines{grid-template-columns:repeat(3,1fr)} }
+
+  .card{ background:var(--card); padding:22px;border-radius:16px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 20px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05); transition:all 0.3s ease; position:relative; overflow:hidden; }
+  .card::before{ content:''; position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(90deg, var(--blue-2), var(--accent)); }
+  .card:hover{ transform:translateY(-2px); box-shadow:0 8px 30px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.05); }
+  .card h3{ margin:0 0 16px;color:var(--blue-2); font-size:18px; font-weight:800; padding-bottom:8px; border-bottom:2px solid #f1f5f9; }
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0}
+  .row .label{width:140px;font-weight:700;color:#374151; font-size:14px}
+  .row input{ flex:1;padding:10px 14px;border-radius:10px;border:2px solid #e5e7eb;font-size:14px; transition:all 0.3s ease; background:#fafafa; }
+  .row input:focus{ outline:none; border-color:var(--blue-2); background:#fff; box-shadow:0 0 0 3px rgba(0,74,173,0.1); }
+  .row.small .label{width:120px;font-weight:600}
+  .mini{width:120px}
+  .btn-inline{ background:linear-gradient(135deg, var(--accent), #0099cc); color:#fff;border:none;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600; font-size:13px; transition:all 0.3s ease; box-shadow:0 2px 8px rgba(0,180,216,0.3); }
+  .btn-inline:hover{ transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,180,216,0.4); }
+  .btn-inline.danger{ background:linear-gradient(135deg, var(--danger), #dc2626); box-shadow:0 2px 8px rgba(239,68,68,0.3); }
+  .actions{display:flex;gap:10px;margin-top:14px}
+  .calc-btn{ background:linear-gradient(135deg, var(--blue-2), var(--blue-1)); color:#fff;border:none;padding:12px 20px;border-radius:10px;cursor:pointer;font-weight:700;font-size:15px; transition:all 0.3s ease; box-shadow:0 4px 12px rgba(0,74,173,0.3); }
+  .output{ background:linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); padding:16px;border-radius:12px; border-left:5px solid var(--blue-2); font-weight:700;color:#222;margin-top:14px; box-shadow:0 2px 10px rgba(0,0,0,0.05); transition:all 0.3s ease; }
+
+  .expense-item{ display:flex;gap:8px;margin-top:8px;padding:8px; background:#f8fafc; border-radius:8px; transition:all 0.3s ease; }
+  .expense-item input{ flex:1;padding:10px 12px;border-radius:8px;border:2px solid #e5e7eb; background:#fff; transition:all 0.3s ease; }
+  .expense-item input:focus{ outline:none; border-color:var(--blue-2); box-shadow:0 0 0 3px rgba(0,74,173,0.1); }
+
+  .footer-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .save-btn{ background:linear-gradient(135deg, var(--success), #059669); color:#fff;border:none;padding:10px 16px;border-radius:10px; cursor:pointer;font-weight:600;transition:all 0.3s ease; box-shadow:0 4px 12px rgba(16,185,129,0.3); }
+  .pdf-btn{ background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff;border:none;padding:10px 16px;border-radius:10px; cursor:pointer;font-weight:600;transition:all 0.3s ease; box-shadow:0 4px 12px rgba(37,99,235,0.3); }
+  .overall-btn{ background:linear-gradient(135deg, var(--blue-2), var(--blue-1)); color:#fff;border:none;padding:10px 16px;border-radius:10px; cursor:pointer;font-weight:600;transition:all 0.3s ease; box-shadow:0 4px 12px rgba(0,74,173,0.3); }
+
+  /* small responsive adjustments */
+  @media(max-width:1199px){
+    .app{ min-width:unset; width:98vw }
+  }
+
+  /* View mode toggle styles */
+  .app.force-mobile{ min-width:unset !important; width:100vw !important; max-width:100vw !important; border-radius:12px !important; }
+  .app.force-mobile .topbar{ padding:12px 16px !important; gap:12px !important; flex-wrap:wrap !important; }
+  .app.force-mobile .top-left{ gap:10px !important; flex-wrap:wrap !important; }
+  .app.force-mobile .hp-logo{ height:40px !important; }
+  .app.force-mobile .title{ font-size:16px !important; }
+  .app.force-mobile .datetime{ font-size:11px !important; padding:4px 8px !important; }
+  .app.force-mobile .rate-inputs{ margin-right:0 !important; padding:6px 8px !important; gap:6px !important; flex-wrap:wrap !important; }
+  .app.force-mobile .rate-inputs label{ font-size:11px !important; margin-right:2px !important; }
+  .app.force-mobile .rate-inputs input{ width:60px !important; padding:6px 8px !important; font-size:12px !important; }
+  .app.force-mobile .content{ padding:12px !important; gap:12px !important; }
+  .app.force-mobile .card{ padding:16px !important; }
+  .app.force-mobile .card h3{ font-size:16px !important; margin:0 0 12px !important; }
+  .app.force-mobile .row{ gap:8px !important; margin:8px 0 !important; flex-wrap:wrap !important; }
+  .app.force-mobile .row .label{ width:100px !important; font-size:13px !important; min-width:80px !important; }
+  .app.force-mobile .row.small .label{ width:90px !important; min-width:70px !important; font-size:12px !important; }
+  .app.force-mobile .row input{ font-size:13px !important; padding:8px 10px !important; min-width:100px !important; }
+  .app.force-mobile .btn-inline{ padding:8px 12px !important; font-size:12px !important; }
+  .app.force-mobile .calc-btn{ padding:10px 16px !important; font-size:14px !important; }
+  .app.force-mobile .output{ padding:12px !important; font-size:13px !important; }
+  .app.force-mobile .footer-actions{ gap:8px !important; flex-wrap:wrap !important; }
+  .app.force-mobile .save-btn, .app.force-mobile .pdf-btn, .app.force-mobile .overall-btn{ padding:8px 12px !important; font-size:13px !important; }
+  .app.force-mobile .expense-item{ gap:6px !important; padding:6px !important; flex-wrap:wrap !important; }
+  .app.force-mobile .expense-item input{ padding:8px 10px !important; font-size:12px !important; min-width:100px !important; }
+  .app.force-mobile .machines{ grid-template-columns:repeat(1,1fr) !important; }
+  .app.force-mobile .controls{ flex-wrap:wrap !important; }
+
+  .app.force-desktop{ min-width:1200px !important; width:95vw !important; max-width:1600px !important; }
+  .app.force-desktop .machines{ grid-template-columns:repeat(3,1fr) !important; }
+  .app.force-desktop .datetime{ display:block !important; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN CARD (visible first) -->
+<div id="loginCard" class="login-card" role="dialog" aria-modal="true">
+  <img src="download.webp" alt="HP Logo">
+  <h2>KADAMBAA FULES - Dealer Login</h2>
+
+  <div class="field">
+    <label for="loginUser">Username</label>
+    <input id="loginUser" type="text" placeholder="Enter Username" autocomplete="username">
+  </div>
+  <div class="field">
+    <label for="loginPass">Password</label>
+    <input id="loginPass" type="password" placeholder="Enter Password" autocomplete="current-password">
+  </div>
+  <button class="btn" onclick="doLogin()">Login</button>
+
+  <div style="display:flex;justify-content:center;gap:12px;align-items:center;margin-top:8px">
+    <button class="forgot-btn" onclick="openForgot()">Forgot Password?</button>
+  </div>
+
+  <p class="small-muted" style="margin-top:12px;line-height:1.6">
+    <b>Dealer Login:</b> Username: <b>DEALER</b> — Password: <b>DEALER</b>
+  </p>
+</div>
+
+<!-- Forgot modal -->
+<div id="modalOverlay" class="modal-overlay"></div>
+<div id="forgotModal" class="forgot-modal" role="dialog" aria-modal="true" aria-labelledby="forgotTitle">
+  <h4 id="forgotTitle">Forgot Password</h4>
+  <p>The dealer credentials are:</p>
+  <p><strong>Username:</strong> <span id="credUser">DEALER</span></p>
+  <p><strong>Password:</strong> <span id="credPass">DEALER</span></p>
+  <p style="margin-top:10px">If you need to change the password, contact your admin or update it in the source code credentials.</p>
+  <div class="close">
+    <button class="btn-inline" onclick="closeForgot()">Close</button>
+  </div>
+</div>
+
+<!-- MAIN APP (hidden until login) -->
+<div id="app" class="app" style="display:none">
+  <div class="topbar">
+    <div class="top-left">
+      <img class="hp-logo" src="download.webp" alt="HP">
+      <div>
+        <div class="title">KADAMBAA FULES — Daily Dashboard</div>
+        <div class="small-muted" style="font-size:13px" id="ratesDisplay">Rates — Diesel ₹92.76 · Petrol ₹101.15 · Oil ₹350</div>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="rate-inputs">
+      <button class="btn-inline" id="changeRatesBtn" onclick="toggleRateEdit()" style="display:none">Change</button>
+      <label>Diesel:</label>
+      <input type="number" id="rateDiesel" value="92.76" step="0.01" onchange="updateRates()" placeholder="92.76" disabled>
+      <label>Petrol:</label>
+      <input type="number" id="ratePetrol" value="101.15" step="0.01" onchange="updateRates()" placeholder="101.15" disabled>
+      <label>Oil:</label>
+      <input type="number" id="rateOil" value="350" step="0.01" onchange="updateRates()" placeholder="350" disabled>
+    </div>
+
+    <div class="datetime" id="topDateTime">—</div>
+
+    <div class="controls" style="margin-left:12px">
+      <button class="btn-inline" id="viewToggleBtn" onclick="toggleViewMode()" title="Toggle Desktop/Mobile View">📱/💻</button>
+      <button class="btn-inline" onclick="scrollToTop()">Top</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+      <div class="small-muted">Add/remove persons & expenses per machine. Click each machine's Calculate to compute that machine. Use Overall for total collection.</div>
+      <div class="footer-actions">
+        <button class="overall-btn" onclick="overallCalculation()">Overall Calculation</button>
+        <button class="save-btn" onclick="saveAll()">💾 Save (local)</button>
+        <button class="pdf-btn" onclick="downloadPDF()">📄 Download PDF</button>
+      </div>
+    </div>
+
+    <div class="machines" id="machinesContainer"></div>
+
+    <div id="overallOutput" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<script>
+/* ---------- Configuration (rates - oil default changed to 350) ---------- */
+let RATES = {
+  diesel: 92.76,
+  petrol: 101.15,
+  oil: 350
+};
+
+/* ---------- Machine definitions ---------- */
+const MACHINES = [
+  { id: 1, name: "Machine 1 (Diesel Nozzle 1 & 2)", nozzles: ["Diesel","Diesel"] },
+  { id: 2, name: "Machine 2 (Nozzle1: Petrol, Nozzle2: Diesel, Oil reading)", nozzles: ["Petrol", "Diesel"] , hasOil:true},
+  { id: 3, name: "Machine 3 (Petrol Nozzle 1 & 2)", nozzles: ["Petrol","Petrol"] }
+];
+
+/* state */
+let results = {}; // per-machine results
+let userType = null; // 'dealer' or 'manager' (we'll use dealer by default here)
+
+/* ---------- utilities ---------- */
+function el(id){ return document.getElementById(id); }
+function formatRs(v){ return "₹" + Number(v||0).toFixed(2); }
+function nowDateTime(){ return new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }); }
+function scrollToTop(){ window.scrollTo({top:0,behavior:"smooth"}); }
+
+/* ---------- View mode toggle ---------- */
+function toggleViewMode(){
+  const app = el("app");
+  const btn = el("viewToggleBtn");
+  
+  if(!app || !btn) return;
+  
+  if(app.classList.contains("force-mobile")){
+    app.classList.remove("force-mobile");
+    app.classList.add("force-desktop");
+    btn.innerText = "💻";
+    btn.title = "Switch to Mobile View";
+    localStorage.setItem("kadaamba_view_mode", "desktop");
+  } else if(app.classList.contains("force-desktop")){
+    app.classList.remove("force-desktop");
+    app.classList.add("force-mobile");
+    btn.innerText = "📱";
+    btn.title = "Switch to Desktop View";
+    localStorage.setItem("kadaamba_view_mode", "mobile");
+  } else {
+    // First time - default to desktop
+    app.classList.add("force-desktop");
+    btn.innerText = "💻";
+    btn.title = "Switch to Mobile View";
+    localStorage.setItem("kadaamba_view_mode", "desktop");
+  }
+}
+
+/* ---------- Restore view mode on login ---------- */
+function restoreViewMode(){
+  const savedMode = localStorage.getItem("kadaamba_view_mode");
+  const app = el("app");
+  const btn = el("viewToggleBtn");
+  
+  if(!app || !btn) return;
+  
+  if(savedMode === "mobile"){
+    app.classList.add("force-mobile");
+    btn.innerText = "📱";
+    btn.title = "Switch to Desktop View";
+  } else if(savedMode === "desktop"){
+    app.classList.add("force-desktop");
+    btn.innerText = "💻";
+    btn.title = "Switch to Mobile View";
+  } else {
+    // Default to desktop
+    app.classList.add("force-desktop");
+    btn.innerText = "💻";
+    btn.title = "Switch to Mobile View";
+  }
+}
+
+/* ---------- Forgot modal handlers ---------- */
+function openForgot(){
+  el('modalOverlay').style.display = 'block';
+  el('forgotModal').style.display = 'block';
+}
+function closeForgot(){
+  el('modalOverlay').style.display = 'none';
+  el('forgotModal').style.display = 'none';
+}
+
+/* ---------- Toggle rate editing (kept but hidden by default) ---------- */
+function toggleRateEdit(){
+  const dieselInput = el("rateDiesel");
+  const petrolInput = el("ratePetrol");
+  const oilInput = el("rateOil");
+  const btn = el("changeRatesBtn");
+  
+  if(dieselInput.disabled){
+    dieselInput.disabled = false;
+    petrolInput.disabled = false;
+    oilInput.disabled = false;
+    btn.innerText = "Save";
+    btn.style.background = "#22a06b";
+  } else {
+    dieselInput.disabled = true;
+    petrolInput.disabled = true;
+    oilInput.disabled = true;
+    btn.innerText = "Change";
+    btn.style.background = "";
+    updateRates();
+  }
+}
+
+/* ---------- Update rates from input boxes ---------- */
+function updateRates(){
+  RATES.diesel = Number(el("rateDiesel").value) || RATES.diesel;
+  RATES.petrol = Number(el("ratePetrol").value) || RATES.petrol;
+  RATES.oil = Number(el("rateOil").value) || RATES.oil;
+  el("ratesDisplay").innerText = `Rates — Diesel ₹${RATES.diesel.toFixed(2)} · Petrol ₹${RATES.petrol.toFixed(2)} · Oil ₹${RATES.oil.toFixed(2)}`;
+}
+
+/* ---------- login (DEALER only by request) ---------- */
+function doLogin(){
+  const u = el("loginUser").value.trim().toUpperCase();
+  const p = el("loginPass").value.trim();
+  
+  // Dealer login
+  if(u === "DEALER" && p === "DEALER"){
+    userType = "dealer";
+    document.getElementById("loginCard").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    el("topDateTime").innerText = nowDateTime();
+    setInterval(()=> el("topDateTime").innerText = nowDateTime(), 1000);
+    updateRates(); // Initialize rates display
+    setupUserAccess(); // Setup access based on user type
+    renderMachines();
+    restoreViewMode(); // Restore saved view mode
+    // restore saved data results if any
+    const saved = localStorage.getItem("kadaamba_results_v1");
+    if(saved){
+      try{ results = JSON.parse(saved); }catch(e){ results = {}; }
+    }
+    // show saved last calculations in cards if any
+    setTimeout(()=> { Object.keys(results||{}).forEach(k=> { const id = Number(k); if(el(`out_${id}`) && results[id]) el(`out_${id}`).innerHTML = `<div>Last saved total: ${formatRs(results[id].grand||0)}</div>`; }); }, 300);
+  } else {
+    alert("Invalid credentials.\n\nDealer: Username: DEALER, Password: DEALER\nIf you forgot, click 'Forgot Password?'");
+  }
+}
+
+/* ---------- Setup user access based on type ---------- */
+function setupUserAccess(){
+  const changeBtn = el("changeRatesBtn");
+  if(userType === "manager"){
+    if(changeBtn) changeBtn.style.display = "block";
+    el("rateDiesel").disabled = true;
+    el("ratePetrol").disabled = true;
+    el("rateOil").disabled = true;
+  } else {
+    // Dealers cannot change rates by default
+    if(changeBtn) changeBtn.style.display = "none";
+    el("rateDiesel").disabled = true;
+    el("ratePetrol").disabled = true;
+    el("rateOil").disabled = true;
+  }
+}
+
+/* ---------- render machines UI ---------- */
+function renderMachines(){
+  const container = el("machinesContainer");
+  container.innerHTML = "";
+  MACHINES.forEach(m=>{
+    const wrapper = document.createElement("div");
+    wrapper.className = "card";
+    wrapper.id = `card_${m.id}`;
+
+    // build HTML
+    wrapper.innerHTML = `
+      <h3>${m.name}</h3>
+
+      <div class="row" style="margin-bottom:12px">
+        <div class="label">Person(s)</div>
+        <div style="flex:1">
+          <div id="persons_${m.id}" class="person-list">
+            <input type="text" placeholder="Person name" />
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button class="btn-inline" title="Add person" onclick="addPerson(${m.id})">➕</button>
+          <button class="btn-inline danger" title="Remove last" onclick="removePerson(${m.id})">🗑</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:300px">
+          <div id="nozzles_${m.id}"></div>
+
+          ${m.hasOil ? `
+            <div style="margin-top:8px">
+              <div class="row small"><div class="label">Old Oil</div><input id="m${m.id}_oil_old" type="number" placeholder="0"></div>
+              <div class="row small"><div class="label">New Oil</div><input id="m${m.id}_oil_new" type="number" placeholder="0"></div>
+            </div>` : ''}
+        </div>
+
+        <div style="flex:1;min-width:260px">
+          <div class="row small"><div class="label">Old Paytm</div><input id="m${m.id}_oldPaytm" type="number" placeholder="0"></div>
+          <div class="row small"><div class="label">New Paytm</div><input id="m${m.id}_newPaytm" type="number" placeholder="0"></div>
+          <div class="row small"><div class="label">Manual Paytm</div><input id="m${m.id}_manual" type="number" placeholder="0"></div>
+          <div class="row small"><div class="label">Cash</div><input id="m${m.id}_cash" type="number" placeholder="0"></div>
+
+          <div class="expenses" id="exp_${m.id}" style="margin-top:8px">
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+              <div style="font-weight:700;color:#444">Expenses</div>
+              <button class="btn-inline" onclick="addExpense(${m.id})" title="Add expense">➕</button>
+            </div>
+            <div id="exp_list_${m.id}"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="calc-btn" onclick="calculateMachine(${m.id})">Calculate</button>
+        <button class="btn-inline" onclick="clearMachine(${m.id})">Clear</button>
+      </div>
+
+      <div class="output" id="out_${m.id}">${results[m.id] ? `<div>Last saved total: ${formatRs(results[m.id].grand||0)}</div>` : 'No calculation yet.'}</div>
+    `;
+
+    container.appendChild(wrapper);
+
+    // inject nozzle rows
+    const nozzleContainer = wrapper.querySelector(`#nozzles_${m.id}`);
+    if(Array.isArray(m.nozzles) && m.nozzles.length>0){
+      m.nozzles.forEach((type, idx)=>{
+        const labelN = `Nozzle ${idx+1} (${type})`;
+        const html = `
+          <div class="row small">
+            <div class="label">${labelN} Old</div>
+            <input id="m${m.id}_n${idx+1}_old" type="number" placeholder="0">
+            <div class="label" style="width:100px">New</div>
+            <input id="m${m.id}_n${idx+1}_new" type="number" placeholder="0">
+          </div>
+        `;
+        nozzleContainer.insertAdjacentHTML("beforeend", html);
+      });
+    }
+  });
+}
+
+/* ---------- person add/remove ---------- */
+function addPerson(mid){
+  const c = el(`persons_${mid}`);
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "Person name";
+  c.appendChild(input);
+}
+function removePerson(mid){
+  const c = el(`persons_${mid}`);
+  if(c.children.length > 1) c.removeChild(c.lastElementChild);
+  else alert("At least one person field required.");
+}
+
+/* ---------- expenses add/remove ---------- */
+function addExpense(mid){
+  const list = el(`exp_list_${mid}`);
+  const id = `exp_${mid}_${Date.now()}`;
+  const div = document.createElement("div");
+  div.className = "expense-item";
+  div.id = id;
+  div.innerHTML = `
+    <input type="text" placeholder="Expense title" />
+    <input type="number" placeholder="Amount" />
+    <button class="btn-inline danger" onclick="removeExpense('${id}')">−</button>
+  `;
+  list.appendChild(div);
+}
+function removeExpense(id){ const elItem = el(id); if(elItem) elItem.remove(); }
+
+/* ---------- helpers to read inputs safely ---------- */
+function val(id){ const e = el(id); if(!e) return 0; return Number(e.value) || 0; }
+function personsList(mid){
+  return Array.from(document.querySelectorAll(`#persons_${mid} input`)).map(i=>i.value.trim()).filter(Boolean);
+}
+
+/* ---------- calculations ---------- */
+function calculateMachine(mid){
+  const m = MACHINES.find(x=>x.id===mid);
+  let fuelTotal = 0;
+  const fuelDetails = [];
+
+  if(m.nozzles && m.nozzles.length>0){
+    m.nozzles.forEach((type, idx)=>{
+      const oldv = val(`m${mid}_n${idx+1}_old`);
+      const newv = val(`m${mid}_n${idx+1}_new`);
+      const diff = (newv - oldv);
+      const rate = (type.toLowerCase().startsWith("petrol")) ? RATES.petrol : RATES.diesel;
+      const amount = diff * rate;
+      fuelTotal += amount;
+      if(diff !== 0){
+        fuelDetails.push({ nozzle: `Nozzle ${idx+1} (${type})`, old: oldv, new: newv, diff: diff, rate: rate, amount: amount });
+      }
+    });
+  }
+
+  let oilTotal = 0;
+  if(m.hasOil){
+    const oldOil = val(`m${mid}_oil_old`), newOil = val(`m${mid}_oil_new`);
+    const sold = newOil - oldOil;
+    if(sold !== 0){
+      oilTotal = sold * RATES.oil;
+      fuelDetails.push({ nozzle: "Oil", old: oldOil, new: newOil, diff: sold, rate: RATES.oil, amount: oilTotal });
+    }
+  }
+  fuelTotal += oilTotal;
+
+  const paytmOld = val(`m${mid}_oldPaytm`), paytmNew = val(`m${mid}_newPaytm`);
+  const manual = val(`m${mid}_manual`), cash = val(`m${mid}_cash`);
+  const paytmTotal = (paytmNew - paytmOld) + manual;
+
+  let expenses = 0;
+  const expenseDetails = [];
+  Array.from(document.querySelectorAll(`#exp_list_${mid} .expense-item`)).forEach((div, idx)=>{
+    const inputs = div.querySelectorAll("input");
+    const title = inputs && inputs[0] ? inputs[0].value.trim() : "";
+    const amount = inputs && inputs[1] ? Number(inputs[1].value) || 0 : 0;
+    if(amount || title){
+      expenses += amount;
+      expenseDetails.push({ title: title || `Expense ${idx+1}`, amount });
+    }
+  });
+
+  const grand = paytmTotal + cash + expenses;
+
+  const fuelMinusExpensesPaytm = fuelTotal - (expenses + paytmTotal);
+  const shortage = fuelTotal - grand;
+  const excess = cash > fuelMinusExpensesPaytm ? cash - fuelMinusExpensesPaytm : 0; // Extra cash to store
+  const displayShortage = excess > 0 ? 0 : shortage; // Show 0 if excess exists, else show actual shortage
+
+  results[mid] = { fuelTotal, oilTotal, paytmTotal, cash, expenses, grand, fuelMinusExpensesPaytm, shortage, excess, expenseDetails, fuelDetails, persons: personsList(mid), at: new Date().toISOString() };
+
+  el(`out_${mid}`).innerHTML = `
+    <div><b>Persons:</b> ${results[mid].persons.length? results[mid].persons.join(", ") : "N/A"}</div>
+    <div><b>Fuel Total:</b> ${formatRs(fuelTotal)}</div>
+    ${fuelDetails.length ? `<div style="margin-top:4px;font-size:13px;color:#555"><b>Fuel Calculation:</b><div style="margin-left:10px;margin-top:2px">${fuelDetails.map(item=>`<div>${item.nozzle}: ${item.diff.toFixed(2)}L × ₹${item.rate.toFixed(2)} = ${formatRs(item.amount)}</div>`).join("")}</div></div>` : ''}
+    ${m.hasOil? `<div><b>Oil Total:</b> ${formatRs(oilTotal)}</div>` : ''}
+    <div><b>Paytm / Manual:</b> ${formatRs(paytmTotal)}</div>
+    <div><b>Cash:</b> ${formatRs(cash)}</div>
+    <div><b>Total Expenses:</b> ${formatRs(expenses)}</div>
+    ${expenseDetails.length ? `<div style="margin-top:4px;font-size:13px;color:#555"><b>Expense Details:</b> ${expenseDetails.map(item=>`${item.title} (${formatRs(item.amount)})`).join(", ")}</div>` : ''}
+    <div style="margin-top:8px"><b>Fuel - (Expenses + Paytm):</b> ${formatRs(Math.abs(fuelMinusExpensesPaytm))} <span style="color:var(--muted);font-size:12px">(Cash needed)</span></div>
+    <div style="margin-top:8px"><b>Grand Total:</b> ${formatRs(grand)}</div>
+    <div style="margin-top:8px"><b>Shortage (Fuel - Grand):</b> ${formatRs(displayShortage)}</div>
+    <div style="margin-top:8px;color:var(--success)"><b>Excess (Extra Cash to Store):</b> ${formatRs(excess)}</div>
+    <div class="small-muted" style="margin-top:6px">Calculated at: ${new Date().toLocaleString()}</div>
+  `;
+}
+
+/* ---------- calculate all / overall ---------- */
+function overallCalculation(){
+  let sum = 0;
+  MACHINES.forEach(m=>{
+    if(results[m.id] && typeof results[m.id].grand === "number"){
+      sum += results[m.id].grand;
+    } else {
+      calculateMachine(m.id);
+      if(results[m.id]) sum += results[m.id].grand || 0;
+    }
+  });
+
+  el("overallOutput").innerHTML = `<div class="card" style="padding:12px"><h3>Overall Collection</h3>
+    <div style="font-weight:800;font-size:18px">Grand Total Sales: ${formatRs(sum)}</div>
+    <div class="small-muted">Saved snapshot: ${new Date().toLocaleString()}</div>
+  </div>`;
+}
+
+/* ---------- save / persist ---------- */
+function saveAll(){
+  try{
+    localStorage.setItem("kadaamba_results_v1", JSON.stringify(results));
+    const dataStr = JSON.stringify(results, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `KADAMBAA_FULES_${new Date().toISOString().slice(0,10)}_${new Date().toTimeString().slice(0,8).replace(/:/g,'-')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    alert("✅ Data saved!\n\n1. Saved to browser storage\n2. Downloaded JSON file to your Downloads folder");
+  } catch(e){ alert("Saving failed: " + e.message); }
+}
+
+/* ---------- pdf export ---------- */
+function downloadPDF(){
+  overallCalculation();
+  const opt = {
+    margin: 0.4,
+    filename: `KADAMBAA_FULES_${new Date().toISOString().slice(0,10)}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS:true },
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+  };
+  const element = document.querySelector('.app');
+  const prevBg = document.body.style.background;
+  document.body.style.background = "#fff";
+  html2pdf().set(opt).from(element).save().then(()=> document.body.style.background = prevBg);
+}
+
+/* ---------- clear inputs per machine ---------- */
+function clearMachine(mid){
+  const card = el(`card_${mid}`);
+  if(!card) return;
+  Array.from(card.querySelectorAll("input")).forEach(i=> i.value = "");
+  delete results[mid];
+  el(`out_${mid}`).innerHTML = "Cleared.";
+}
+
+/* ---------- Init: show login card (already shown by default) ---------- */
+</script>
+</body>
+</html>
