@@ -163,6 +163,13 @@
   .app.force-desktop{ min-width:1200px !important; width:95vw !important; max-width:1600px !important; }
   .app.force-desktop .machines{ grid-template-columns:repeat(3,1fr) !important; }
   .app.force-desktop .datetime{ display:block !important; }
+
+  /* PDF export - ensure all data is visible */
+  .app * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
 </style>
 </head>
 <body>
@@ -671,18 +678,161 @@ function saveAll(){
 
 /* ---------- pdf export ---------- */
 function downloadPDF(){
+  // First, ensure all calculations are done
   overallCalculation();
-  const opt = {
-    margin: 0.4,
-    filename: `KADAMBAA_FULES_${new Date().toISOString().slice(0,10)}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS:true },
-    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-  };
-  const element = document.querySelector('.app');
-  const prevBg = document.body.style.background;
-  document.body.style.background = "#fff";
-  html2pdf().set(opt).from(element).save().then(()=> document.body.style.background = prevBg);
+  
+  // Calculate all machines to ensure all data is displayed
+  MACHINES.forEach(m => {
+    calculateMachine(m.id);
+  });
+  
+  // Re-run overall calculation with all data
+  overallCalculation();
+  
+  const app = el("app");
+  if(!app) {
+    alert("Error: App element not found");
+    return;
+  }
+  
+  // Convert images to base64 to avoid CORS issues
+  const images = app.querySelectorAll('img');
+  const imagePromises = Array.from(images).map(img => {
+    return new Promise((resolve) => {
+      if (img.complete && img.naturalHeight !== 0) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx.drawImage(img, 0, 0);
+        try {
+          img.src = canvas.toDataURL('image/png');
+          resolve();
+        } catch(e) {
+          // If conversion fails, hide image
+          img.style.display = 'none';
+          resolve();
+        }
+      } else {
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          ctx.drawImage(img, 0, 0);
+          try {
+            img.src = canvas.toDataURL('image/png');
+            resolve();
+          } catch(e) {
+            img.style.display = 'none';
+            resolve();
+          }
+        };
+        img.onerror = () => {
+          img.style.display = 'none';
+          resolve();
+        };
+      }
+    });
+  });
+  
+  // Wait for all images to be processed
+  Promise.all(imagePromises).then(() => {
+    // Store original styles
+    const prevBg = document.body.style.background;
+    const originalStyles = {
+      width: app.style.width,
+      minWidth: app.style.minWidth,
+      maxWidth: app.style.maxWidth,
+      maxHeight: app.style.maxHeight,
+      overflow: app.style.overflow,
+      borderRadius: app.style.borderRadius
+    };
+    const originalClasses = app.className;
+    
+    // Remove restrictions for PDF
+    app.style.width = "100%";
+    app.style.minWidth = "auto";
+    app.style.maxWidth = "100%";
+    app.style.maxHeight = "none";
+    app.style.overflow = "visible";
+    app.style.borderRadius = "0";
+    
+    // Remove view mode classes
+    app.classList.remove("force-mobile", "force-desktop");
+    
+    // Hide action buttons
+    const buttonsToHide = app.querySelectorAll('.controls button, .btn-inline, .calc-btn, .actions button, #changeRatesBtn, #viewToggleBtn');
+    const buttonDisplays = [];
+    buttonsToHide.forEach((btn, idx) => {
+      buttonDisplays[idx] = btn.style.display;
+      btn.style.display = 'none';
+    });
+    
+    // Set white background
+    document.body.style.background = "#ffffff";
+    
+    // Wait for layout to update
+    setTimeout(() => {
+      const opt = {
+        margin: [0.3, 0.3],
+        filename: `KADAMBAA_FULES_${new Date().toISOString().slice(0,10)}.pdf`,
+        image: { 
+          type: 'jpeg', 
+          quality: 0.98 
+        },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: false,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          letterRendering: true,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: app.scrollWidth || app.offsetWidth,
+          windowHeight: app.scrollHeight || app.offsetHeight
+        },
+        jsPDF: { 
+          unit: 'in', 
+          format: 'a4', 
+          orientation: 'portrait',
+          compress: true
+        },
+        pagebreak: { 
+          mode: ['avoid-all', 'css', 'legacy'],
+          avoid: ['.card', '.output']
+        }
+      };
+      
+      html2pdf().set(opt).from(app).save().then(() => {
+        // Restore original styles
+        app.className = originalClasses;
+        Object.keys(originalStyles).forEach(key => {
+          app.style[key] = originalStyles[key];
+        });
+        document.body.style.background = prevBg;
+        
+        // Restore buttons
+        buttonsToHide.forEach((btn, idx) => {
+          btn.style.display = buttonDisplays[idx];
+        });
+      }).catch(err => {
+        console.error('PDF generation error:', err);
+        alert('Error generating PDF: ' + err.message);
+        
+        // Restore on error
+        app.className = originalClasses;
+        Object.keys(originalStyles).forEach(key => {
+          app.style[key] = originalStyles[key];
+        });
+        document.body.style.background = prevBg;
+        buttonsToHide.forEach((btn, idx) => {
+          btn.style.display = buttonDisplays[idx];
+        });
+      });
+    }, 500);
+  });
 }
 
 /* ---------- clear inputs per machine ---------- */
